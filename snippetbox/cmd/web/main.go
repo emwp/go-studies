@@ -7,12 +7,15 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/emwp/go-studies/snippetbox/pkg/models/mysql"
+
 	_ "github.com/go-sql-driver/mysql"
 )
 
 type application struct {
 	errorLog *log.Logger
 	infoLog  *log.Logger
+	snippets *mysql.SnippedModel
 }
 
 func openDB(dsn string) (*sql.DB, error) {
@@ -44,6 +47,7 @@ func main() {
 	app := &application{
 		errorLog: errorLog,
 		infoLog:  infoLog,
+		snippets: &mysql.SnippedModel{DB: db},
 	}
 
 	srv := &http.Server{
