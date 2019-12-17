@@ -1,18 +1,27 @@
 package main
 
 import (
-	"fmt"
-	"github.com/emwp/go-studies/grpc-go/greet/greetpb"
-	"google.golang.org/grpc"
+	"context"
 	"log"
 	"net"
+
+	"github.com/emwp/go-studies/grpc-go/greet/greetpb"
+	"google.golang.org/grpc"
 )
 
 type server struct{}
 
-func main() {
-	fmt.Println("Hello World")
+func (*server) Greet(ctx context.Context, req *greetpb.GreetRequest) (*greetpb.GreetResponse, error) {
+	firstName := req.GetGreeting().GetFirstName()
 
+	res := &greetpb.GreetResponse{
+		Result: "Hello " + firstName,
+	}
+
+	return res, nil
+}
+
+func main() {
 	lis, err := net.Listen("tcp", "0.0.0.0:50051")
 
 	if err != nil {
