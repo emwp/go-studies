@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"strconv"
+	"time"
 
 	"github.com/emwp/go-studies/grpc-go/greet/greetpb"
 	"google.golang.org/grpc"
@@ -22,6 +24,21 @@ func (*server) Greet(ctx context.Context, req *greetpb.GreetRequest) (*greetpb.G
 	}
 
 	return res, nil
+}
+
+func (*server) GreetManyTimes(req *greetpb.GreetManyTimesRequest, stream greetpb.GreetService_GreetManyTimesServer) error {
+	fmt.Printf("Greet many times was invoked with %v\n", req)
+
+	firstName := req.GetGreeting().GetFirstName()
+	lastName := req.Greeting.LastName
+	for i := 0; i < 10; i++ {
+		res := &greetpb.GreetManyTimesResponse{
+			Result: "Hello " + firstName + " " + lastName + " number " + strconv.Itoa(i),
+		}
+		stream.Send(res)
+		time.Sleep(1000 * time.Millisecond)
+	}
+	return nil
 }
 
 func main() {
