@@ -22,10 +22,9 @@ func main() {
 	c := greetpb.NewGreetServiceClient(conn)
 
 	// doUnary(c)
-
 	// doServerStreaming(c)
-
-	doClientStreaming(c)
+	// doClientStreaming(c)
+	doBiDiStreaming(c)
 }
 
 func doUnary(c greetpb.GreetServiceClient) {
@@ -89,21 +88,6 @@ func doClientStreaming(c greetpb.GreetServiceClient) {
 				FirstName: "Rafael",
 			},
 		},
-		&greetpb.LongGreetRequest{
-			Greeting: &greetpb.Greeting{
-				FirstName: "Sophie",
-			},
-		},
-		&greetpb.LongGreetRequest{
-			Greeting: &greetpb.Greeting{
-				FirstName: "Ana",
-			},
-		},
-		&greetpb.LongGreetRequest{
-			Greeting: &greetpb.Greeting{
-				FirstName: "Eduardo",
-			},
-		},
 	}
 
 	stream, err := c.LongGreet(context.Background())
@@ -125,4 +109,70 @@ func doClientStreaming(c greetpb.GreetServiceClient) {
 	}
 
 	fmt.Printf("\nLongGreet Response: %v", res.Result)
+}
+
+func doBiDiStreaming(c greetpb.GreetServiceClient) {
+	fmt.Println("Starting BiDi Streaming RPC...")
+
+	// create a stream by invoking the client
+	stream, err := c.GreetEveryone(context.Background())
+	if err != nil {
+		log.Fatalf("Error while creating stream: %v", err)
+		return
+	}
+
+	requests := []*greetpb.GreetEveryoneRequest{
+		&greetpb.GreetEveryoneRequest{
+			Greeting: &greetpb.Greeting{
+				FirstName: "Yennefer",
+			},
+		},
+		&greetpb.GreetEveryoneRequest{
+			Greeting: &greetpb.Greeting{
+				FirstName: "Toruviel",
+			},
+		},
+		&greetpb.GreetEveryoneRequest{
+			Greeting: &greetpb.Greeting{
+				FirstName: "Geralt",
+			},
+		},
+		&greetpb.GreetEveryoneRequest{
+			Greeting: &greetpb.Greeting{
+				FirstName: "Ciri",
+			},
+		},
+	}
+
+	waitChannel := make(chan struct{})
+
+	// send a bunch of messagees to the client (go routines)
+	go func() {
+		for _, req := range requests {
+			fmt.Printf("\nSending message: %v\n", req)
+			stream.Send(req)
+			time.Sleep(1000 * time.Millisecond)
+		}
+		stream.CloseSend()
+	}()
+
+	// receive a bunch of messages from the client (go routines)
+	go func() {
+		for {
+			res, err := stream.Recv()
+			if err == io.EOF {
+				break
+			}
+			if err != nil {
+				log.Fatalf("Error while receiving: %v\n", err)
+				break
+			}
+
+			fmt.Printf("Received: %v\n", res.GetResult())
+		}
+		close(waitChannel)
+	}()
+
+	// block until everything is done
+	<-waitChannel
 }
